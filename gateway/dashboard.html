@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard - Mini E-commerce</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #1a1a2e; color: #eee; padding: 20px; }
+    h1 { text-align: center; color: #e94560; margin-bottom: 30px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .card { background: #16213e; border-radius: 10px; padding: 20px; text-align: center; border: 2px solid #0f3460; }
+    .card h2 { font-size: 14px; color: #aaa; margin-bottom: 10px; }
+    .status { font-size: 28px; font-weight: bold; }
+    .ok { color: #4ecca3; }
+    .fail { color: #e94560; }
+    .port { font-size: 12px; color: #888; margin-top: 5px; }
+    .log-box { background: #16213e; border-radius: 10px; padding: 20px; border: 2px solid #0f3460; }
+    .log-box h2 { color: #e94560; margin-bottom: 15px; }
+    #logs { height: 200px; overflow-y: auto; font-family: monospace; font-size: 13px; }
+    .log-entry { padding: 4px 0; border-bottom: 1px solid #0f3460; }
+    .log-ok { color: #4ecca3; }
+    .log-fail { color: #e94560; }
+    .refresh { color: #888; font-size: 12px; text-align: center; margin-top: 15px; }
+  </style>
+</head>
+<body>
+  <h1>🛒 Mini E-commerce — Dashboard</h1>
+  <div class="grid" id="cards"></div>
+  <div class="log-box">
+    <h2>📋 Log de Eventos</h2>
+    <div id="logs"></div>
+  </div>
+  <p class="refresh">Atualiza automaticamente a cada 5 segundos</p>
+
+  <script>
+    const services = [
+      { name: 'API Gateway', key: 'gateway', port: 5000 },
+      { name: 'Usuários', key: 'users', port: 5001 },
+      { name: 'Produtos (R1)', key: 'products', port: 5002 },
+      { name: 'Produtos (R2)', key: 'products_replica', port: 5012 },
+      { name: 'Pedidos', key: 'orders', port: 5003 }
+    ];
+
+    const logs = [];
+    const prevStatus = {};
+
+    function addLog(msg, type) {
+      const time = new Date().toLocaleTimeString();
+      logs.unshift({ time, msg, type });
+      if (logs.length > 50) logs.pop();
+      renderLogs();
+    }
+
+    function renderLogs() {
+      const el = document.getElementById('logs');
+      el.innerHTML = logs.map(l =>
+        `<div class="log-entry log-${l.type}">[${l.time}] ${l.msg}</div>`
+      ).join('');
+    }
+
+    async function fetchHealth() {
+      try {
+        const res = await fetch('http://localhost:5000/health');
+        const data = await res.json();
+
+        const allServices = {
+          gateway: { healthy: true, port: 5000 },
+          ...data.services
+        };
+
+        const cards = document.getElementById('cards');
+        cards.innerHTML = services.map(s => {
+          const info = allServices[s.key];
+          const healthy = info ? info.healthy : false;
+          const prev = prevStatus[s.key];
+
+          if (prev !== undefined && prev !== healthy) {
+            addLog(
+              `${s.name} (porta ${s.port}) ${healthy ? 'RECUPERADO ✅' : 'CAIU ❌'}`,
+              healthy ? 'ok' : 'fail'
+            );
+          }
+          prevStatus[s.key] = healthy;
+
+          return `
+            <div class="card">
+              <h2>${s.name}</h2>
+              <div class="status ${healthy ? 'ok' : 'fail'}">${healthy ? '✅ OK' : '❌ FALHA'}</div>
+              <div class="port">Porta ${s.port}</div>
+            </div>`;
+        }).join('');
+
+      } catch (e) {
+        addLog('Gateway inacessível!', 'fail');
+      }
+    }
+
+    fetchHealth();
+    addLog('Dashboard iniciado', 'ok');
+    setInterval(fetchHealth, 5000);
+  </script>
+</body>
+</html>
