@@ -3,6 +3,7 @@
 ## Pré-requisitos
 - Node.js 18+ instalado
 - npm instalado
+- Docker 20+ e Docker Compose instalados (para Opção 1 — Recomendado)
 
 ## Estrutura do Projeto
 
