@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  users:
+    build: ./users
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./users/users.json:/app/users.json
+      - ./certs:/app/certs
+    environment:
+      - JWT_SECRET=senha12345678
+
+  products_primary:
+    build: ./products
+    ports:
+      - "5002:5002"
+    volumes:
+      - ./products/products_5002.json:/app/products_5002.json
+      - ./certs:/app/certs
+    environment:
+      - PORT=5002
+      - JWT_SECRET=senha12345678
+
+  products_replica:
+    build: ./products
+    ports:
+      - "5012:5012"
+    volumes:
+      - ./products/products_5012.json:/app/products_5012.json
+      - ./certs:/app/certs
+    environment:
+      - PORT=5012
+      - JWT_SECRET=senha12345678
+
+  orders:
+    build: ./orders
+    ports:
+      - "5003:5003"
+    volumes:
+      - ./orders/orders.json:/app/orders.json
+      - ./certs:/app/certs
+    environment:
+      - JWT_SECRET=senha12345678
+    depends_on:
+      - products_primary
+
+  gateway:
+    build: ./gateway
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./certs:/app/certs
+    environment:
+      - JWT_SECRET=senha12345678
+      - USERS_HOST=users
+      - PRODUCTS_HOST=products_primary
+      - PRODUCTS_REPLICA_HOST=products_replica
+      - ORDERS_HOST=orders
+    depends_on:
+      - users
+      - products_primary
+      - products_replica
+      - orders

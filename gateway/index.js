@@ -7,6 +7,10 @@ const app = express();
 app.use(express.json());
 
 const PORT = 5000;
+const USERS_HOST = process.env.USERS_HOST || 'localhost';
+const PRODUCTS_HOST = process.env.PRODUCTS_HOST || 'localhost';
+const PRODUCTS_REPLICA_HOST = process.env.PRODUCTS_REPLICA_HOST || 'localhost';
+const ORDERS_HOST = process.env.ORDERS_HOST || 'localhost';
 
 const sslOptions = {
   key: fs.readFileSync(path.join(__dirname, 'key.pem')),
@@ -22,11 +26,19 @@ const SERVICES = {
 
 let productsRoundRobin = 0;
 
+function hostForPort(port) {
+  if (port === 5001) return USERS_HOST;
+  if (port === 5002) return PRODUCTS_HOST;
+  if (port === 5012) return PRODUCTS_REPLICA_HOST;
+  if (port === 5003) return ORDERS_HOST;
+  return 'localhost';
+}
+
 function forward(port, urlPath, method, headers, body) {
   return new Promise((resolve, reject) => {
     const data = body ? JSON.stringify(body) : null;
     const options = {
-      hostname: 'localhost',
+      hostname: hostForPort(port),
       port,
       path: urlPath,
       method,
@@ -55,7 +67,7 @@ async function syncReplica(downPort, healthyPort) {
     if (products.length === 0) return;
     const syncData = JSON.stringify(products);
     const options = {
-      hostname: 'localhost',
+      hostname: PRODUCTS_HOST,
       port: downPort,
       path: '/products/sync',
       method: 'POST',
@@ -86,7 +98,7 @@ async function syncReplica(downPort, healthyPort) {
 function checkHealth(name, port) {
   return new Promise((resolve) => {
     const req = https.request(
-      { hostname: 'localhost', port, path: '/health', method: 'GET', timeout: 3000, rejectUnauthorized: false },
+      { hostname: hostForPort(port), port, path: '/health', method: 'GET', timeout: 3000, rejectUnauthorized: false },
       (res) => {
         const wasDown = !SERVICES[name].healthy;
         SERVICES[name].healthy = true;

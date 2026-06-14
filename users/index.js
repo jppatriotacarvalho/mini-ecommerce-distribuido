@@ -9,7 +9,7 @@ const app = express();
 app.use(express.json());
 
 const PORT = 5001;
-const JWT_SECRET = process.env.JWT_SECRET || 'segredo_super_secreto_2024';
+const JWT_SECRET = process.env.JWT_SECRET || 'senha12345678';
 const DB_FILE = path.join(__dirname, 'users.json');
 
 const sslOptions = {

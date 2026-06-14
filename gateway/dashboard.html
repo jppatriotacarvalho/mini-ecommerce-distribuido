@@ -60,7 +60,7 @@
 
     async function fetchHealth() {
       try {
-        const res = await fetch('http://localhost:5000/health');
+        const res = await fetch('https://localhost:5000/health');
         const data = await res.json();
 
         const allServices = {
