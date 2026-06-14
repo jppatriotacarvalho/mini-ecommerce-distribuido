@@ -9,6 +9,7 @@ app.use(express.json());
 
 const PORT = 5003;
 const JWT_SECRET = process.env.JWT_SECRET || 'senha12345678';
+const PRODUCTS_HOST = process.env.PRODUCTS_HOST || 'localhost';
 const DB_FILE = path.join(__dirname, 'orders.json');
 
 const sslOptions = {
@@ -46,7 +47,7 @@ function verifyToken(req, res) {
 function httpsGet(port, path) {
   return new Promise((resolve, reject) => {
     const req = https.request({
-      hostname: 'localhost',
+      hostname: PRODUCTS_HOST,
       port,
       path,
       method: 'GET',

@@ -67,7 +67,7 @@ async function syncReplica(downPort, healthyPort) {
     if (products.length === 0) return;
     const syncData = JSON.stringify(products);
     const options = {
-      hostname: PRODUCTS_HOST,
+      hostname: hostForPort(downPort),
       port: downPort,
       path: '/products/sync',
       method: 'POST',

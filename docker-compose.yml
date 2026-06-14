@@ -42,6 +42,7 @@ services:
       - ./certs:/app/certs
     environment:
       - JWT_SECRET=senha12345678
+      - PRODUCTS_HOST=products_primary
     depends_on:
       - products_primary
 
