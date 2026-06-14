@@ -2,7 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
-const http = require('http');
+const https = require('https');
 
 const app = express();
 app.use(express.json());
@@ -10,6 +10,11 @@ app.use(express.json());
 const PORT = 5003;
 const JWT_SECRET = process.env.JWT_SECRET || 'segredo_super_secreto_2024';
 const DB_FILE = path.join(__dirname, 'orders.json');
+
+const sslOptions = {
+  key: fs.readFileSync(path.join(__dirname, 'key.pem')),
+  cert: fs.readFileSync(path.join(__dirname, 'cert.pem'))
+};
 
 if (!fs.existsSync(DB_FILE)) {
   fs.writeFileSync(DB_FILE, JSON.stringify([]));
@@ -38,9 +43,15 @@ function verifyToken(req, res) {
   }
 }
 
-function httpGet(port, path) {
+function httpsGet(port, path) {
   return new Promise((resolve, reject) => {
-    const req = http.request({ hostname: 'localhost', port, path, method: 'GET' }, (res) => {
+    const req = https.request({
+      hostname: 'localhost',
+      port,
+      path,
+      method: 'GET',
+      rejectUnauthorized: false
+    }, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => resolve(JSON.parse(data)));
@@ -50,34 +61,27 @@ function httpGet(port, path) {
   });
 }
 
-// Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'orders', port: PORT });
 });
 
-// Criar pedido
 app.post('/orders', async (req, res) => {
   const decoded = verifyToken(req, res);
   if (!decoded) return;
-
   try {
     const { productId } = req.body;
     if (!productId) {
       return res.status(400).json({ error: 'productId é obrigatório' });
     }
-
-    // Verifica se produto existe
     let product;
     try {
-      product = await httpGet(5002, `/products/${productId}`);
+      product = await httpsGet(5002, `/products/${productId}`);
     } catch {
       return res.status(404).json({ error: 'Produto não encontrado ou serviço indisponível' });
     }
-
     if (product.error) {
       return res.status(404).json({ error: 'Produto não encontrado' });
     }
-
     const newOrder = {
       id: Date.now().toString(),
       userId: decoded.userId,
@@ -87,22 +91,18 @@ app.post('/orders', async (req, res) => {
       status: 'criado',
       createdAt: new Date().toISOString()
     };
-
     const orders = getOrders();
     orders.push(newOrder);
     saveOrders(orders);
-
     res.status(201).json({ message: 'Pedido criado com sucesso', order: newOrder });
   } catch (error) {
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
 
-// Listar pedidos de um usuário
 app.get('/orders/:userId', (req, res) => {
   const decoded = verifyToken(req, res);
   if (!decoded) return;
-
   try {
     const orders = getOrders();
     const userOrders = orders.filter(o => o.userId === req.params.userId);
@@ -112,6 +112,6 @@ app.get('/orders/:userId', (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Serviço de Pedidos rodando na porta ${PORT}`);
+https.createServer(sslOptions, app).listen(PORT, () => {
+  console.log(`Serviço de Pedidos rodando em HTTPS na porta ${PORT}`);
 });
