@@ -35,7 +35,7 @@ app.get('/health', (req, res) => {
 
 app.post('/users/register', async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Nome, email e senha são obrigatórios' });
     }
@@ -49,7 +49,7 @@ app.post('/users/register', async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role: role || 'user',
+      role: 'user',
       createdAt: new Date().toISOString()
     };
     users.push(newUser);
@@ -100,7 +100,7 @@ app.get('/users/:id', (req, res) => {
     const { password: _, ...userWithoutPassword } = user;
     res.json(userWithoutPassword);
   } catch (error) {
-    if (error.name === 'JsonWebTokenError') {
+    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
       return res.status(401).json({ error: 'Token inválido' });
     }
     res.status(500).json({ error: 'Erro interno do servidor' });

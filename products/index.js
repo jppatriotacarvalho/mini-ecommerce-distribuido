@@ -9,6 +9,7 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 5002;
 const JWT_SECRET = process.env.JWT_SECRET || 'senha12345678';
+const INTERNAL_KEY = process.env.INTERNAL_KEY || 'internal-secret';
 const DB_FILE = path.join(__dirname, `products_${PORT}.json`);
 
 const sslOptions = {
@@ -82,6 +83,9 @@ app.post('/products', (req, res) => {
 });
 
 app.post('/products/replicate', (req, res) => {
+  if (req.headers['x-internal-key'] !== INTERNAL_KEY) {
+    return res.status(401).json({ error: 'Acesso interno não autorizado' });
+  }
   try {
     const product = req.body;
     const products = getProducts();
@@ -96,6 +100,9 @@ app.post('/products/replicate', (req, res) => {
 });
 
 app.post('/products/sync', (req, res) => {
+  if (req.headers['x-internal-key'] !== INTERNAL_KEY) {
+    return res.status(401).json({ error: 'Acesso interno não autorizado' });
+  }
   try {
     const incoming = req.body;
     if (!Array.isArray(incoming)) {

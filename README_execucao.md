@@ -16,7 +16,28 @@ mini-ecommerce-distribuido/
 └── README_execucao.md
 ```
 
-## Como Rodar o Projeto
+## Opção 1 — Docker Compose (Recomendado)
+
+Com **Docker** e **Docker Compose** instalados, execute na raiz do projeto:
+
+```bash
+docker-compose up --build
+```
+
+Aguarde até aparecer no terminal:
+```
+API Gateway rodando em HTTPS na porta 5000
+Serviço de Usuários rodando em HTTPS na porta 5001
+Serviço de Produtos rodando em HTTPS na porta 5002
+Serviço de Produtos rodando em HTTPS na porta 5012
+Serviço de Pedidos rodando em HTTPS na porta 5003
+```
+
+Para encerrar: `docker-compose down`
+
+---
+
+## Opção 2 — Execução Manual (sem Docker)
 
 Abra **5 terminais separados** e execute cada comando em um terminal:
 
@@ -75,10 +96,12 @@ $PSDefaultParameterValues['Invoke-WebRequest:UseBasicParsing'] = $true
 
 ---
 
-### Registrar usuário admin
+### Registrar usuário
 ```powershell
-curl -Method POST https://localhost:5000/users/register -ContentType "application/json" -Body '{"name":"Admin","email":"admin@email.com","password":"123456","role":"admin"}'
+curl -Method POST https://localhost:5000/users/register -ContentType "application/json" -Body '{"name":"Admin","email":"admin@email.com","password":"123456"}'
 ```
+
+> **Para testar criação de produtos (role admin):** após registrar, edite o arquivo `users/users.json` e altere `"role": "user"` para `"role": "admin"` no usuário criado. Depois faça login novamente para obter um token com role admin.
 
 ### Login e obter token JWT
 ```powershell
@@ -123,7 +146,7 @@ curl -Method POST https://localhost:5000/products -ContentType "application/json
 
 ### Usuário comum tentando criar produto — deve retornar 403
 ```powershell
-curl -Method POST https://localhost:5000/users/register -ContentType "application/json" -Body '{"name":"User","email":"user@email.com","password":"123456","role":"user"}'
+curl -Method POST https://localhost:5000/users/register -ContentType "application/json" -Body '{"name":"User","email":"user@email.com","password":"123456"}'
 $response2 = curl -Method POST https://localhost:5000/users/login -ContentType "application/json" -Body '{"email":"user@email.com","password":"123456"}'
 $tokenUser = ($response2.Content | ConvertFrom-Json).token
 curl -Method POST https://localhost:5000/products -ContentType "application/json" -Headers @{Authorization="Bearer $tokenUser"} -Body '{"name":"Teste","price":100}'

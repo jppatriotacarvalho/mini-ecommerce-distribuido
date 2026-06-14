@@ -21,6 +21,7 @@ services:
     environment:
       - PORT=5002
       - JWT_SECRET=senha12345678
+      - INTERNAL_KEY=internal-secret
 
   products_replica:
     build: ./products
@@ -32,6 +33,7 @@ services:
     environment:
       - PORT=5012
       - JWT_SECRET=senha12345678
+      - INTERNAL_KEY=internal-secret
 
   orders:
     build: ./orders
@@ -58,6 +60,7 @@ services:
       - PRODUCTS_HOST=products_primary
       - PRODUCTS_REPLICA_HOST=products_replica
       - ORDERS_HOST=orders
+      - INTERNAL_KEY=internal-secret
     depends_on:
       - users
       - products_primary

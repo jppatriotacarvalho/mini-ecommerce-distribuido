@@ -11,6 +11,7 @@ const USERS_HOST = process.env.USERS_HOST || 'localhost';
 const PRODUCTS_HOST = process.env.PRODUCTS_HOST || 'localhost';
 const PRODUCTS_REPLICA_HOST = process.env.PRODUCTS_REPLICA_HOST || 'localhost';
 const ORDERS_HOST = process.env.ORDERS_HOST || 'localhost';
+const INTERNAL_KEY = process.env.INTERNAL_KEY || 'internal-secret';
 
 const sslOptions = {
   key: fs.readFileSync(path.join(__dirname, 'key.pem')),
@@ -43,6 +44,7 @@ function forward(port, urlPath, method, headers, body) {
       path: urlPath,
       method,
       rejectUnauthorized: false,
+      timeout: 5000,
       headers: {
         'Content-Type': 'application/json',
         ...headers,
@@ -55,6 +57,7 @@ function forward(port, urlPath, method, headers, body) {
       res.on('end', () => resolve({ status: res.statusCode, body: raw }));
     });
     req.on('error', reject);
+    req.on('timeout', () => req.destroy());
     if (data) req.write(data);
     req.end();
   });
@@ -74,7 +77,8 @@ async function syncReplica(downPort, healthyPort) {
       rejectUnauthorized: false,
       headers: {
         'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(syncData)
+        'Content-Length': Buffer.byteLength(syncData),
+        'x-internal-key': INTERNAL_KEY
       }
     };
     await new Promise((resolve, reject) => {
@@ -127,10 +131,10 @@ function checkHealth(name, port) {
   });
 }
 
-setInterval(async () => {
-  for (const [name, service] of Object.entries(SERVICES)) {
-    await checkHealth(name, service.port);
-  }
+setInterval(() => {
+  Promise.all(
+    Object.entries(SERVICES).map(([name, service]) => checkHealth(name, service.port))
+  );
 }, 5000);
 
 function getProductsPort() {
@@ -208,7 +212,7 @@ app.post('/products', async (req, res) => {
     if (r.status === 201) {
       const product = JSON.parse(r.body).product;
       if (SERVICES.products_replica.healthy) {
-        const rep = await forward(5012, '/products/replicate', 'POST', {}, product);
+        const rep = await forward(5012, '/products/replicate', 'POST', { 'x-internal-key': INTERNAL_KEY }, product);
         if (rep.status !== 200) {
           console.error(`[${new Date().toISOString()}] [REPLICATION ERROR] Réplica 5012 retornou status ${rep.status}`);
           SERVICES.products_replica.failures += 1;
