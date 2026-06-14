@@ -208,7 +208,15 @@ app.post('/products', async (req, res) => {
     if (r.status === 201) {
       const product = JSON.parse(r.body).product;
       if (SERVICES.products_replica.healthy) {
-        await forward(5012, '/products/replicate', 'POST', {}, product);
+        const rep = await forward(5012, '/products/replicate', 'POST', {}, product);
+        if (rep.status !== 200) {
+          console.error(`[${new Date().toISOString()}] [REPLICATION ERROR] Réplica 5012 retornou status ${rep.status}`);
+          SERVICES.products_replica.failures += 1;
+          if (SERVICES.products_replica.failures >= 2) {
+            SERVICES.products_replica.healthy = false;
+            console.error(`[${new Date().toISOString()}] [REPLICATION] Réplica 5012 marcada como indisponível após falha de replicação`);
+          }
+        }
       }
     }
     res.status(r.status).json(JSON.parse(r.body));
