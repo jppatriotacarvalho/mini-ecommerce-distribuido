@@ -13,9 +13,15 @@ const PRODUCTS_REPLICA_HOST = process.env.PRODUCTS_REPLICA_HOST || 'localhost';
 const ORDERS_HOST = process.env.ORDERS_HOST || 'localhost';
 const INTERNAL_KEY = process.env.INTERNAL_KEY || 'internal-secret';
 
+function findCertFile(filename) {
+  const local = path.join(__dirname, filename);
+  if (fs.existsSync(local)) return local;
+  return path.join(__dirname, '..', 'certs', filename);
+}
+
 const sslOptions = {
-  key: fs.readFileSync(path.join(__dirname, 'key.pem')),
-  cert: fs.readFileSync(path.join(__dirname, 'cert.pem'))
+  key: fs.readFileSync(findCertFile('key.pem')),
+  cert: fs.readFileSync(findCertFile('cert.pem'))
 };
 
 const SERVICES = {
@@ -214,12 +220,9 @@ app.post('/products', async (req, res) => {
       if (SERVICES.products_replica.healthy) {
         const rep = await forward(5012, '/products/replicate', 'POST', { 'x-internal-key': INTERNAL_KEY }, product);
         if (rep.status !== 200) {
-          console.error(`[${new Date().toISOString()}] [REPLICATION ERROR] Réplica 5012 retornou status ${rep.status}`);
-          SERVICES.products_replica.failures += 1;
-          if (SERVICES.products_replica.failures >= 2) {
-            SERVICES.products_replica.healthy = false;
-            console.error(`[${new Date().toISOString()}] [REPLICATION] Réplica 5012 marcada como indisponível após falha de replicação`);
-          }
+          console.error(`[${new Date().toISOString()}] [REPLICATION ERROR] Réplica 5012 retornou status ${rep.status} — marcada como indisponível`);
+          SERVICES.products_replica.healthy = false;
+          SERVICES.products_replica.failures = 2;
         }
       }
     }

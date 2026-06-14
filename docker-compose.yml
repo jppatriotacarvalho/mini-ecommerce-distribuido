@@ -7,9 +7,11 @@ services:
       - "5001:5001"
     volumes:
       - ./users/users.json:/app/users.json
-      - ./certs:/app/certs
+      - ./certs/key.pem:/app/key.pem
+      - ./certs/cert.pem:/app/cert.pem
     environment:
       - JWT_SECRET=senha12345678
+      - INTERNAL_KEY=internal-secret
 
   products_primary:
     build: ./products
@@ -17,7 +19,8 @@ services:
       - "5002:5002"
     volumes:
       - ./products/products_5002.json:/app/products_5002.json
-      - ./certs:/app/certs
+      - ./certs/key.pem:/app/key.pem
+      - ./certs/cert.pem:/app/cert.pem
     environment:
       - PORT=5002
       - JWT_SECRET=senha12345678
@@ -29,7 +32,8 @@ services:
       - "5012:5012"
     volumes:
       - ./products/products_5012.json:/app/products_5012.json
-      - ./certs:/app/certs
+      - ./certs/key.pem:/app/key.pem
+      - ./certs/cert.pem:/app/cert.pem
     environment:
       - PORT=5012
       - JWT_SECRET=senha12345678
@@ -41,9 +45,11 @@ services:
       - "5003:5003"
     volumes:
       - ./orders/orders.json:/app/orders.json
-      - ./certs:/app/certs
+      - ./certs/key.pem:/app/key.pem
+      - ./certs/cert.pem:/app/cert.pem
     environment:
       - JWT_SECRET=senha12345678
+      - INTERNAL_KEY=internal-secret
       - PRODUCTS_HOST=products_primary
     depends_on:
       - products_primary
@@ -53,7 +59,8 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./certs:/app/certs
+      - ./certs/key.pem:/app/key.pem
+      - ./certs/cert.pem:/app/cert.pem
     environment:
       - JWT_SECRET=senha12345678
       - USERS_HOST=users

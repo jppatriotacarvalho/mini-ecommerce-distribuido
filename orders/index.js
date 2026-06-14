@@ -12,9 +12,15 @@ const JWT_SECRET = process.env.JWT_SECRET || 'senha12345678';
 const PRODUCTS_HOST = process.env.PRODUCTS_HOST || 'localhost';
 const DB_FILE = path.join(__dirname, 'orders.json');
 
+function findCertFile(filename) {
+  const local = path.join(__dirname, filename);
+  if (fs.existsSync(local)) return local;
+  return path.join(__dirname, '..', 'certs', filename);
+}
+
 const sslOptions = {
-  key: fs.readFileSync(path.join(__dirname, 'key.pem')),
-  cert: fs.readFileSync(path.join(__dirname, 'cert.pem'))
+  key: fs.readFileSync(findCertFile('key.pem')),
+  cert: fs.readFileSync(findCertFile('cert.pem'))
 };
 
 if (!fs.existsSync(DB_FILE)) {
